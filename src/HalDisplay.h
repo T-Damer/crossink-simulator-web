@@ -76,6 +76,7 @@ public:
   void displayGrayBuffer(bool turnOffScreen = false,
                          const unsigned char *lut = nullptr,
                          bool factoryMode = false);
+  void displayFactoryGrayBuffer(bool turnOffScreen = false);
 
   // The simulator intentionally advertises strip grayscale support so host
   // builds exercise the same low-memory path as the device firmware, and so
