@@ -87,8 +87,7 @@ public:
   // Setup wake up GPIO and enter deep sleep
   void startDeepSleep();
 
-  // Verify power button was held long enough after wakeup.
-  // The host wake path is synthetic, so verification always succeeds.
+  // Simulated power-button wakes are always accepted so host boot can continue.
   bool verifyPowerButtonWakeup(uint16_t requiredDurationMs,
                                bool shortPressAllowed);
 
