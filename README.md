@@ -79,7 +79,7 @@ custom_run_simulator_target_owner = project
 extra_scripts =
   pre:scripts/gen_i18n.py
   pre:scripts/git_branch.py
-  pre:scripts/build_html.py
+  pre:scripts/build_web.py
   post:.pio/libdeps/$PIOENV/simulator/run_simulator_project.py
 ```
 
@@ -91,7 +91,7 @@ custom_run_simulator_target_owner = project
 extra_scripts =
   pre:scripts/gen_i18n.py
   pre:scripts/git_branch.py
-  pre:scripts/build_html.py
+  pre:scripts/build_web.py
   post:../crossink-simulator/run_simulator_project.py
 ```
 
@@ -106,7 +106,6 @@ The `custom_run_simulator_target_owner = project` line tells the library-side ho
 Do not point `post:` at `run_simulator.py` directly. That file is already auto-loaded via `library.json` and is the backward-compatible library hook.
 
 The `post:` line above only exposes the task in the consuming project UI. The actual launcher logic still lives in this simulator repo.
-
 
 ## Setup
 
