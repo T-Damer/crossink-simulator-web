@@ -45,6 +45,7 @@ public:
   void displayBufferAsync(RefreshMode mode = RefreshMode::FAST_REFRESH);
   void waitRefreshComplete();
   bool supportsAsyncRefresh() const;
+  bool supportsAsyncGrayscaleBase() const;
   void displayWindow(int x, int y, int w, int h);
   void refreshDisplay(RefreshMode mode = RefreshMode::FAST_REFRESH,
                       bool turnOffScreen = false);

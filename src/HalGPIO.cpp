@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "HalDisplay.h"
+#include "SimulatorInput.h"
 #include "SimulatorLifecycle.h"
 
 // Defined in HalDisplay.cpp — set here so all SDL event polling lives in one
@@ -153,12 +154,9 @@ void updateTouchMovement(float panelNx, float panelNy) {
   }
 }
 
-void beginTouch(float logicalNx, float logicalNy) {
+void beginTouchAtPanel(float panelNx, float panelNy) {
   if (!BoardConfig::hasTouch())
     return;
-  float panelNx = 0.0f;
-  float panelNy = 0.0f;
-  logicalToPanelNormalized(logicalNx, logicalNy, panelNx, panelNy);
   touchState.down = true;
   touchState.pressedThisFrame = true;
   touchState.activityThisFrame = true;
@@ -170,23 +168,41 @@ void beginTouch(float logicalNx, float logicalNy) {
   touchState.pressedAt = SDL_GetTicks();
 }
 
-void moveTouch(float logicalNx, float logicalNy) {
-  if (!touchState.down)
-    return;
+void beginTouch(float logicalNx, float logicalNy) {
   float panelNx = 0.0f;
   float panelNy = 0.0f;
   logicalToPanelNormalized(logicalNx, logicalNy, panelNx, panelNy);
+  beginTouchAtPanel(panelNx, panelNy);
+}
+
+void moveTouchAtPanel(float panelNx, float panelNy) {
+  if (!touchState.down)
+    return;
   updateTouchMovement(panelNx, panelNy);
 }
 
-void endTouch(float logicalNx, float logicalNy) {
+void moveTouch(float logicalNx, float logicalNy) {
+  float panelNx = 0.0f;
+  float panelNy = 0.0f;
+  logicalToPanelNormalized(logicalNx, logicalNy, panelNx, panelNy);
+  moveTouchAtPanel(panelNx, panelNy);
+}
+
+void endTouchAtPanel(float panelNx, float panelNy) {
   if (!touchState.down)
     return;
-  moveTouch(logicalNx, logicalNy);
+  moveTouchAtPanel(panelNx, panelNy);
   touchState.down = false;
   touchState.releasedThisFrame = true;
   touchState.activityThisFrame = true;
   touchState.lastHeldMs = SDL_GetTicks() - touchState.pressedAt;
+}
+
+void endTouch(float logicalNx, float logicalNy) {
+  float panelNx = 0.0f;
+  float panelNy = 0.0f;
+  logicalToPanelNormalized(logicalNx, logicalNy, panelNx, panelNy);
+  endTouchAtPanel(panelNx, panelNy);
 }
 
 void beginHomeKey() {
@@ -435,7 +451,10 @@ static int scancodeToButton(SDL_Scancode sc) {
 }
 
 void HalGPIO::begin() {
-#if defined(SIMULATOR_DEVICE_X4_PRO)
+#if defined(SIMULATOR_DEVICE_STICKY)
+  _deviceType = DeviceType::X4;
+  BoardConfig::selectDevice(BoardConfig::Board::Sticky);
+#elif defined(SIMULATOR_DEVICE_X4_PRO)
   _deviceType = DeviceType::X4;
   BoardConfig::selectDevice(BoardConfig::Board::XteinkX4Pro);
 #elif defined(SIMULATOR_DEVICE_X3)
@@ -456,7 +475,8 @@ bool HalGPIO::isXteinkDevice() const {
 
 bool HalGPIO::hasEdgeSideButtons() const {
   return BoardConfig::ACTIVE.board == BoardConfig::Board::XteinkX3 ||
-         BoardConfig::ACTIVE.board == BoardConfig::Board::XteinkX4Pro;
+         BoardConfig::ACTIVE.board == BoardConfig::Board::XteinkX4Pro ||
+         BoardConfig::ACTIVE.board == BoardConfig::Board::Sticky;
 }
 
 void HalGPIO::beginFrame() {
@@ -516,30 +536,24 @@ void HalGPIO::update() {
       }
     } else if (e.type == SDL_MOUSEBUTTONDOWN &&
                e.button.button == SDL_BUTTON_LEFT) {
-      const float logicalNx =
-          static_cast<float>(e.button.x) /
-          std::max(1, static_cast<int>(renderer.getScreenWidth()) - 1);
-      const float logicalNy =
-          static_cast<float>(e.button.y) /
-          std::max(1, static_cast<int>(renderer.getScreenHeight()) - 1);
-      beginTouch(logicalNx, logicalNy);
+      float panelNx = 0.0f;
+      float panelNy = 0.0f;
+      simulatorWindowPointToPanelNormalized(e.button.x, e.button.y, panelNx,
+                                            panelNy);
+      beginTouchAtPanel(panelNx, panelNy);
     } else if (e.type == SDL_MOUSEMOTION && touchState.down) {
-      const float logicalNx =
-          static_cast<float>(e.motion.x) /
-          std::max(1, static_cast<int>(renderer.getScreenWidth()) - 1);
-      const float logicalNy =
-          static_cast<float>(e.motion.y) /
-          std::max(1, static_cast<int>(renderer.getScreenHeight()) - 1);
-      moveTouch(logicalNx, logicalNy);
+      float panelNx = 0.0f;
+      float panelNy = 0.0f;
+      simulatorWindowPointToPanelNormalized(e.motion.x, e.motion.y, panelNx,
+                                            panelNy);
+      moveTouchAtPanel(panelNx, panelNy);
     } else if (e.type == SDL_MOUSEBUTTONUP &&
                e.button.button == SDL_BUTTON_LEFT) {
-      const float logicalNx =
-          static_cast<float>(e.button.x) /
-          std::max(1, static_cast<int>(renderer.getScreenWidth()) - 1);
-      const float logicalNy =
-          static_cast<float>(e.button.y) /
-          std::max(1, static_cast<int>(renderer.getScreenHeight()) - 1);
-      endTouch(logicalNx, logicalNy);
+      float panelNx = 0.0f;
+      float panelNy = 0.0f;
+      simulatorWindowPointToPanelNormalized(e.button.x, e.button.y, panelNx,
+                                            panelNy);
+      endTouchAtPanel(panelNx, panelNy);
     }
   }
   processSyntheticEvents();

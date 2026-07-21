@@ -56,6 +56,10 @@ extend the base simulator environment with one of these flags:
 The sample PlatformIO files include ready-to-use `simulator_x3` and
 `simulator_x4_pro` environments.
 
+Device-specific simulator implementations belong in this repository. For example, a consuming firmware environment may select Sticky with `-DSIMULATOR_DEVICE_STICKY`, but Sticky mouse-to-touch handling, `BoardConfig` compatibility, and any required HAL or ESP-IDF shims must be implemented and published from `crossink-simulator`. Do not copy those shims into the firmware repository.
+
+When developing both repositories side by side, a symlink dependency is useful for testing unpublished simulator changes. That local build is not sufficient release validation: publish the simulator revision, point or pin the firmware dependency to it, and rebuild through the Git dependency before considering the firmware environment usable from a fresh checkout.
+
 If a fork has a custom renderer and the auto-patch cannot recognize it, its simulator build should notify the display when orientation changes:
 
 ```cpp
