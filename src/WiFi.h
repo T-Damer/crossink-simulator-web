@@ -29,10 +29,10 @@ enum wifi_mode_t {
   WIFI_MODE_NULL = 0
 };
 enum wifi_auth_mode_t { WIFI_AUTH_OPEN = 0, WIFI_AUTH_WPA2_PSK = 3 };
-enum wifi_scan_method_t { WIFI_FAST_SCAN = 0, WIFI_ALL_CHANNEL_SCAN };
+enum wifi_scan_method_t { WIFI_FAST_SCAN = 0, WIFI_ALL_CHANNEL_SCAN = 1 };
 enum wifi_sort_method_t {
   WIFI_CONNECT_AP_BY_SIGNAL = 0,
-  WIFI_CONNECT_AP_BY_SECURITY
+  WIFI_CONNECT_AP_BY_SECURITY = 1
 };
 
 #define WIFI_MODE_STA WIFI_STA
@@ -198,7 +198,8 @@ public:
                                          : IPAddress();
   }
   void persistent(bool) {}
-  bool disconnect(bool wifioff = false, bool eraseap = false, unsigned long timeout = 0) {
+  bool disconnect(bool wifioff = false, bool eraseap = false,
+                  unsigned long timeout = 0) {
     (void)wifioff;
     (void)eraseap;
     (void)timeout;
