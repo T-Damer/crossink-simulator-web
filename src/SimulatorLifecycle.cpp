@@ -14,6 +14,12 @@ constexpr const char *kInputScriptAfterWakeEnv =
 constexpr const char *kScreenshotsEnv = "CROSSPOINT_SIM_SCREENSHOTS";
 constexpr const char *kScreenshotsAfterWakeEnv =
     "CROSSPOINT_SIM_SCREENSHOTS_AFTER_WAKE";
+constexpr const char *kSilentRebootMagicEnv =
+    "CROSSPOINT_SIM_SILENT_REBOOT_MAGIC";
+constexpr const char *kSilentRebootTargetEnv =
+    "CROSSPOINT_SIM_SILENT_REBOOT_TARGET";
+constexpr const char *kSilentRebootPayloadEnv =
+    "CROSSPOINT_SIM_SILENT_REBOOT_PAYLOAD";
 char **gArgv = nullptr;
 
 void promoteAfterWakeValue(const char *target, const char *afterWake) {
@@ -24,6 +30,29 @@ void promoteAfterWakeValue(const char *target, const char *afterWake) {
     unsetenv(target);
   }
   unsetenv(afterWake);
+}
+
+uint32_t readToken(const char *name) {
+  const char* value = std::getenv(name);
+  return value ? static_cast<uint32_t>(std::strtoul(value, nullptr, 10)) : 0;
+}
+
+void clearSilentRebootToken() {
+  unsetenv(kSilentRebootMagicEnv);
+  unsetenv(kSilentRebootTargetEnv);
+  unsetenv(kSilentRebootPayloadEnv);
+}
+
+[[noreturn]] void reexec() {
+  if (!gArgv || !gArgv[0]) {
+    std::fputs("SimulatorLifecycle: missing argv for reboot\n", stderr);
+    _exit(1);
+  }
+
+  execvp(gArgv[0], gArgv);
+
+  std::perror("execvp");
+  _exit(1);
 }
 
 } // namespace
@@ -45,12 +74,27 @@ WakeReason consumeWakeReason() {
   return WakeReason::None;
 }
 
-[[noreturn]] void rebootAsPowerWake() {
-  if (!gArgv || !gArgv[0]) {
-    std::fputs("SimulatorLifecycle: missing argv for reboot\n", stderr);
-    _exit(1);
-  }
+void setSilentRebootToken(const uint32_t magic, const uint32_t target, const uint32_t payload) {
+  char value[11];
+  std::snprintf(value, sizeof(value), "%u", magic);
+  setenv(kSilentRebootMagicEnv, value, 1);
+  std::snprintf(value, sizeof(value), "%u", target);
+  setenv(kSilentRebootTargetEnv, value, 1);
+  std::snprintf(value, sizeof(value), "%u", payload);
+  setenv(kSilentRebootPayloadEnv, value, 1);
+}
 
+void restoreSilentRebootToken(uint32_t& magic, uint32_t& target, uint32_t& payload) {
+  magic = readToken(kSilentRebootMagicEnv);
+  target = readToken(kSilentRebootTargetEnv);
+  payload = readToken(kSilentRebootPayloadEnv);
+  clearSilentRebootToken();
+}
+
+[[noreturn]] void reboot() { reexec(); }
+
+[[noreturn]] void rebootAsPowerWake() {
+  clearSilentRebootToken();
   setenv(kWakeReasonEnv, "power", 1);
   // A deep-sleep wake is a fresh process. Do not replay the pre-sleep script,
   // which would otherwise put every relaunched process back to sleep forever.
@@ -58,10 +102,7 @@ WakeReason consumeWakeReason() {
   // or terminate the relaunched instance.
   promoteAfterWakeValue(kInputScriptEnv, kInputScriptAfterWakeEnv);
   promoteAfterWakeValue(kScreenshotsEnv, kScreenshotsAfterWakeEnv);
-  execvp(gArgv[0], gArgv);
-
-  std::perror("execvp");
-  _exit(1);
+  reexec();
 }
 
 } // namespace SimulatorLifecycle

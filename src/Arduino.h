@@ -38,7 +38,7 @@ inline void yield() { std::this_thread::yield(); }
 
 struct ESPMock {
   uint32_t getFreeHeap() { return 1024 * 1024; }
-  void restart() {}
+  void restart();
   uint32_t getHeapSize() { return 1024 * 1024; }
   uint32_t getMinFreeHeap() { return 1024 * 1024; }
   uint32_t getMaxAllocHeap() { return 1024 * 1024; }

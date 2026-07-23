@@ -1,5 +1,6 @@
 #include "Arduino.h"
 #include "ESPmDNS.h"
+#include "SimulatorLifecycle.h"
 #include "WiFi.h"
 
 class SPIClass {};
@@ -13,3 +14,5 @@ FS SD;
 HalStorage Storage;
 WiFiClass WiFi;
 MDNSClass MDNS;
+
+void ESPMock::restart() { SimulatorLifecycle::reboot(); }
