@@ -5,6 +5,15 @@
 
 HalClock halClock;
 
+namespace {
+constexpr const char *kMonthNames[] = {"Jan", "Feb", "Mar", "Apr",
+                                       "May", "Jun", "Jul", "Aug",
+                                       "Sep", "Oct", "Nov", "Dec"};
+constexpr char kFullMonthNames[][10] = {
+    "January", "February", "March",     "April",   "May",      "June",
+    "July",    "August",   "September", "October", "November", "December"};
+} // namespace
+
 void HalClock::begin() {
 #if defined(SIMULATOR_DEVICE_X3) || defined(SIMULATOR_DEVICE_X4_PRO) || \
     defined(SIMULATOR_DEVICE_STICKY)
@@ -84,7 +93,9 @@ bool HalClock::formatTime(char *buf, size_t bufSize,
 }
 
 bool HalClock::formatDate(char *buf, size_t bufSize,
-                          uint8_t utcOffsetQuarterHoursBiased) const {
+                          uint8_t utcOffsetQuarterHoursBiased,
+                          const DateFormat dateFormat,
+                          const char numericSeparator) const {
   if (bufSize < 13u || !_available)
     return false;
 
@@ -101,20 +112,46 @@ bool HalClock::formatDate(char *buf, size_t bufSize,
 #else
   gmtime_r(&now, &utcTime);
 #endif
-  if (std::strftime(buf, bufSize, "%b %e, %Y", &utcTime) == 0)
-    return false;
-  if (buf[0] != '\0') {
-    for (char *p = buf; *p != '\0'; ++p) {
-      if (*p == ' ' && *(p + 1) == ' ') {
-        ++p;
-        while (*p != '\0') {
-          *(p - 1) = *p;
-          ++p;
-        }
-        *(p - 1) = '\0';
-        break;
-      }
-    }
+  const unsigned int year = static_cast<unsigned int>(utcTime.tm_year + 1900);
+  const unsigned int month = static_cast<unsigned int>(utcTime.tm_mon + 1);
+  const unsigned int day = static_cast<unsigned int>(utcTime.tm_mday);
+  const char separator = numericSeparator == '.' || numericSeparator == '-'
+                             ? numericSeparator
+                             : '/';
+  switch (dateFormat) {
+  case DAY_MONTH_YEAR_LONG:
+    std::snprintf(buf, bufSize, "%02u %s %u", day, kMonthNames[month - 1],
+                  year);
+    break;
+  case MONTH_DAY_YEAR_NUMERIC:
+    std::snprintf(buf, bufSize, "%02u%c%02u%c%u", month, separator, day,
+                  separator, year);
+    break;
+  case DAY_MONTH_YEAR_NUMERIC:
+    std::snprintf(buf, bufSize, "%02u%c%02u%c%u", day, separator, month,
+                  separator, year);
+    break;
+  case YEAR_MONTH_DAY_NUMERIC:
+    std::snprintf(buf, bufSize, "%u%c%02u%c%02u", year, separator, month,
+                  separator, day);
+    break;
+  case MONTH_DAY_NUMERIC:
+    std::snprintf(buf, bufSize, "%02u%c%02u", month, separator, day);
+    break;
+  case DAY_MONTH_NUMERIC:
+    std::snprintf(buf, bufSize, "%02u%c%02u", day, separator, month);
+    break;
+  case MONTH_DAY_LONG:
+    std::snprintf(buf, bufSize, "%s %02u", kFullMonthNames[month - 1], day);
+    break;
+  case DAY_MONTH_LONG:
+    std::snprintf(buf, bufSize, "%02u %s", day, kFullMonthNames[month - 1]);
+    break;
+  case MONTH_DAY_YEAR_LONG:
+  default:
+    std::snprintf(buf, bufSize, "%s %02u, %u", kMonthNames[month - 1], day,
+                  year);
+    break;
   }
   return true;
 }
