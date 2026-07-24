@@ -37,6 +37,20 @@ inline BaseType_t xTaskCreate(void (*fn)(void *), const char *name,
   return 1; // pdPASS
 }
 
+// The host simulator has no FreeRTOS stack allocator. Keep the static-task
+// API compatible while delegating thread creation to the normal simulator
+// task path; the provided storage is only meaningful on firmware.
+inline TaskHandle_t xTaskCreateStatic(void (*fn)(void *), const char *name,
+                                      uint32_t stackDepth, void *param,
+                                      BaseType_t priority,
+                                      StackType_t * /*stack*/,
+                                      StaticTask_t * /*taskStorage*/) {
+  TaskHandle_t handle = nullptr;
+  return xTaskCreate(fn, name, stackDepth, param, priority, &handle) == pdPASS
+             ? handle
+             : nullptr;
+}
+
 // Core pinning has no meaning on the host; delegate to xTaskCreate and
 // ignore the core ID.
 inline BaseType_t xTaskCreatePinnedToCore(void (*fn)(void *), const char *name,

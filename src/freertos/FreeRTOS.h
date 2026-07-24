@@ -40,4 +40,9 @@ struct SimTaskHandle {
   std::thread::id id;
   const char *name = "sim-task";
 };
+// Static task allocation is an ESP-IDF storage contract. The simulator uses
+// std::thread instead, but provides these placeholders so firmware using that
+// API builds against the same interface.
+typedef uint32_t StackType_t;
+struct StaticTask_t {};
 typedef SimTaskHandle *TaskHandle_t;
