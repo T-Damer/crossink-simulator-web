@@ -95,6 +95,7 @@ public:
   }
   void sendContent(const String &content);
   void sendContent(const char *content);
+  void sendContent(const char *content, size_t len);
   void setContentLength(size_t len);
   int method();
   String uri();
