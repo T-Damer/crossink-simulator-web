@@ -32,6 +32,19 @@ def run_simulator(source, target, env):
     subprocess.run([binary], cwd=os.getcwd(), env=runtime_env)
 
 
+def run_existing_simulator(source, target, env):
+    import os
+    import subprocess
+
+    binary = env.subst("$BUILD_DIR/program")
+    if not os.path.isfile(binary):
+        print(f"Simulator binary not found: {binary}")
+        print(f"Build it first with: pio run -e {env.subst('$PIOENV')}")
+        return 1
+
+    subprocess.run([binary], cwd=os.getcwd())
+
+
 if not getattr(builtins, RUN_SIMULATOR_TARGET_KEY, False):
     setattr(builtins, RUN_SIMULATOR_TARGET_KEY, True)
     env.AddCustomTarget(
@@ -40,5 +53,13 @@ if not getattr(builtins, RUN_SIMULATOR_TARGET_KEY, False):
         actions=run_simulator,
         title="Run Simulator",
         description="Build and run the desktop simulator",
+        always_build=True,
+    )
+    env.AddCustomTarget(
+        name="run_simulator_no_build",
+        dependencies=None,
+        actions=run_existing_simulator,
+        title="Run Simulator (No Build)",
+        description="Run the existing desktop simulator binary without rebuilding",
         always_build=True,
     )

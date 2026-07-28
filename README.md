@@ -123,6 +123,16 @@ Run this command from the project after you have added the `[env:simulator]` con
 pio run -e simulator -t run_simulator
 ```
 
+After the simulator has been built once, launch the existing binary without
+checking or rebuilding its dependencies:
+
+```bash
+pio run -e simulator -t run_simulator_no_build
+```
+
+The project hook exposes this as **Run Simulator (No Build)** alongside the
+existing **Run Simulator** task in PlatformIO's Custom folder.
+
 ## Controls
 
 | Key    | Action                             |
