@@ -23,7 +23,7 @@ static SDL_Texture *texture = nullptr;
 static constexpr int SIMULATOR_WINDOW_SCALE = 1;
 // Physical bezels can cover the outermost panel pixels. Keep the framebuffer at
 // the real panel size, but crop the visible SDL viewport to mimic that.
-static constexpr int SIMULATOR_BEZEL_INSET = 5;
+static constexpr int SIMULATOR_BEZEL_INSET = 2;
 static constexpr int SIMULATOR_VISIBLE_PANEL_WIDTH =
     HalDisplay::DISPLAY_WIDTH - (SIMULATOR_BEZEL_INSET * 2);
 static constexpr int SIMULATOR_VISIBLE_PANEL_HEIGHT =

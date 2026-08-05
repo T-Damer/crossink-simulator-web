@@ -108,6 +108,8 @@ public:
   void rewindDirectory();
   bool close();
   HalFile openNextFile();
+  // The host filesystem does not model the device wrapper-allocation failure.
+  bool allocationFailed() const { return false; }
   bool isOpen() const;
   operator bool() const;
 };
