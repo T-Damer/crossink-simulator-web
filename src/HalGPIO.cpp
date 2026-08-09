@@ -38,6 +38,7 @@ static constexpr SDL_Scancode HOME_KEY_SCANCODE = SDL_SCANCODE_H;
 static constexpr int TOUCH_TAP_SLOP_PX = 28;
 static constexpr int TOUCH_SWIPE_MIN_PX = 60;
 static constexpr unsigned long TOUCH_SWIPE_MAX_MS = 700;
+static constexpr unsigned long TOUCH_LONG_PRESS_MS = 500;
 static constexpr unsigned long HOME_KEY_LONG_PRESS_MS = 700;
 
 static const SDL_Scancode buttonScancode[NUM_BUTTONS] = {
@@ -63,6 +64,8 @@ struct TouchState {
   bool pressedThisFrame = false;
   bool releasedThisFrame = false;
   bool movedBeyondTapSlop = false;
+  bool longPressFired = false;
+  bool contactSuppressed = false;
   bool activityThisFrame = false;
   float startNx = 0.0f;
   float startNy = 0.0f;
@@ -161,6 +164,8 @@ void beginTouchAtPanel(float panelNx, float panelNy) {
   touchState.pressedThisFrame = true;
   touchState.activityThisFrame = true;
   touchState.movedBeyondTapSlop = false;
+  touchState.longPressFired = false;
+  touchState.contactSuppressed = false;
   touchState.startNx = panelNx;
   touchState.startNy = panelNy;
   touchState.currentNx = panelNx;
@@ -632,7 +637,8 @@ bool HalGPIO::wasHomeKeyLongPressed() const {
 }
 
 bool HalGPIO::wasTouchTap(float &nx, float &ny) const {
-  if (!touchState.releasedThisFrame || touchState.movedBeyondTapSlop)
+  if (!touchState.releasedThisFrame || touchState.movedBeyondTapSlop ||
+      touchState.contactSuppressed)
     return false;
   nx = touchState.startNx;
   ny = touchState.startNy;
@@ -647,11 +653,14 @@ bool HalGPIO::wasTouchDown(float &nx, float &ny) const {
   return true;
 }
 
-bool HalGPIO::wasTouchReleased() const { return touchState.releasedThisFrame; }
+bool HalGPIO::wasTouchReleased() const {
+  return touchState.releasedThisFrame && !touchState.contactSuppressed;
+}
 
 bool HalGPIO::isTouchTapCandidate(float &nx, float &ny,
                                   unsigned long &heldMs) const {
-  if (!touchState.down || touchState.movedBeyondTapSlop) {
+  if (!touchState.down || touchState.movedBeyondTapSlop ||
+      touchState.contactSuppressed) {
     heldMs = 0;
     return false;
   }
@@ -661,8 +670,22 @@ bool HalGPIO::isTouchTapCandidate(float &nx, float &ny,
   return true;
 }
 
+bool HalGPIO::wasTouchLongPress(float &nx, float &ny) const {
+  unsigned long heldMs = 0;
+  if (touchState.longPressFired || !isTouchTapCandidate(nx, ny, heldMs) ||
+      heldMs < TOUCH_LONG_PRESS_MS)
+    return false;
+  touchState.longPressFired = true;
+  return true;
+}
+
+void HalGPIO::suppressTouchContact() {
+  if (touchState.down)
+    touchState.contactSuppressed = true;
+}
+
 bool HalGPIO::isTouchHeldAt(float &nx, float &ny) const {
-  if (!touchState.down)
+  if (!touchState.down || touchState.contactSuppressed)
     return false;
   nx = touchState.currentNx;
   ny = touchState.currentNy;
