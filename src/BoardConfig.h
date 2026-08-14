@@ -42,6 +42,13 @@
 #define FREEINK_CAP_FRONTLIGHT 0
 #endif
 
+// Keep the simulator's BoardConfig contract aligned with the FreeInk SDK.
+// Firmware uses these family flags for compile-time resource choices, while
+// the simulator selects a single device profile above.
+#define FREEINK_MCU_C3 (FREEINK_DEVICE_X3 || FREEINK_DEVICE_X4)
+#define FREEINK_MCU_S3 (FREEINK_DEVICE_X4PRO || FREEINK_DEVICE_STICKY)
+#define FREEINK_MCU_ESP32 0
+
 namespace BoardConfig {
 
 enum class Board {
