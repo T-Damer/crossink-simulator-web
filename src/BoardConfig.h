@@ -5,6 +5,10 @@
 #define FREEINK_LOG_TRANSPORT_SERIAL 0
 #define FREEINK_LOG_TRANSPORT_USB_CDC_WRITE 1
 #define FREEINK_LOG_TRANSPORT_ROM_PRINTF 2
+// Keep this compatibility shim's feature contract in step with FreeInk's
+// BoardConfig defaults.  The simulator implements the user-visible X4 Pro
+// hardware through host backends (filesystem, clock, touch, and frontlight),
+// so the firmware must see the same capabilities it sees on the reader.
 #if defined(SIMULATOR_DEVICE_STICKY)
 #define FREEINK_LOG_TRANSPORT FREEINK_LOG_TRANSPORT_ROM_PRINTF
 #else
@@ -17,29 +21,21 @@
 #define FREEINK_DEVICE_X3 0
 #define FREEINK_DEVICE_X4PRO 0
 #define FREEINK_DEVICE_STICKY 1
-#define FREEINK_CAP_TOUCH 1
-#define FREEINK_CAP_FRONTLIGHT 0
 #elif defined(SIMULATOR_DEVICE_X4_PRO)
 #define FREEINK_DEVICE_X4 0
 #define FREEINK_DEVICE_X3 0
 #define FREEINK_DEVICE_X4PRO 1
 #define FREEINK_DEVICE_STICKY 0
-#define FREEINK_CAP_TOUCH 1
-#define FREEINK_CAP_FRONTLIGHT 1
 #elif defined(SIMULATOR_DEVICE_X3)
 #define FREEINK_DEVICE_X4 0
 #define FREEINK_DEVICE_X3 1
 #define FREEINK_DEVICE_X4PRO 0
 #define FREEINK_DEVICE_STICKY 0
-#define FREEINK_CAP_TOUCH 0
-#define FREEINK_CAP_FRONTLIGHT 0
 #else
 #define FREEINK_DEVICE_X4 1
 #define FREEINK_DEVICE_X3 0
 #define FREEINK_DEVICE_X4PRO 0
 #define FREEINK_DEVICE_STICKY 0
-#define FREEINK_CAP_TOUCH 0
-#define FREEINK_CAP_FRONTLIGHT 0
 #endif
 
 // Keep the simulator's BoardConfig contract aligned with the FreeInk SDK.
@@ -48,6 +44,25 @@
 #define FREEINK_MCU_C3 (FREEINK_DEVICE_X3 || FREEINK_DEVICE_X4)
 #define FREEINK_MCU_S3 (FREEINK_DEVICE_X4PRO || FREEINK_DEVICE_STICKY)
 #define FREEINK_MCU_ESP32 0
+
+#define FREEINK_CAP_TOUCH (FREEINK_DEVICE_STICKY || FREEINK_DEVICE_X4PRO)
+#define FREEINK_CAP_FRONTLIGHT (FREEINK_DEVICE_X4PRO)
+#define FREEINK_CAP_WARMLIGHT (FREEINK_DEVICE_X4PRO)
+// USB Drive is enabled for the X4 Pro simulator environment and is backed by
+// the host filesystem rather than a physical USB-MSC controller.
+#define FREEINK_CAP_USB_MSC (FREEINK_DEVICE_X4PRO)
+#define FREEINK_BATTERY_I2C_GAUGE \
+  (FREEINK_DEVICE_X3 || FREEINK_DEVICE_STICKY || FREEINK_DEVICE_X4PRO)
+#define FREEINK_CAP_RTC \
+  (FREEINK_DEVICE_X3 || FREEINK_DEVICE_STICKY || FREEINK_DEVICE_X4PRO)
+#define FREEINK_CAP_TEMP_HUMIDITY (FREEINK_DEVICE_STICKY)
+#define FREEINK_CAP_IMU (FREEINK_DEVICE_X3 || FREEINK_DEVICE_STICKY)
+#define FREEINK_CAP_COLOR 0
+#define FREEINK_CAP_AUDIO 0
+#define FREEINK_CAP_MIC (FREEINK_DEVICE_STICKY)
+#define FREEINK_CAP_BUZZER (FREEINK_DEVICE_STICKY)
+#define FREEINK_CAP_LED 0
+#define FREEINK_SD_SDMMC (FREEINK_DEVICE_X4PRO)
 
 namespace BoardConfig {
 
