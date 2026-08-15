@@ -37,6 +37,27 @@ class HalGPIO {
 #endif
 
 public:
+  struct TouchContact {
+    uint8_t id = 0;
+    float nx = 0.0f;
+    float ny = 0.0f;
+  };
+
+  struct TouchSnapshot {
+    uint8_t count = 0;
+    uint8_t reportedCount = 0;
+    TouchContact contacts[2];
+  };
+
+  struct CompletedMultiTouchSwipe {
+    uint8_t contactCount = 0;
+    float nxStart = 0.0f;
+    float nyStart = 0.0f;
+    float nxEnd = 0.0f;
+    float nyEnd = 0.0f;
+    unsigned long durationMs = 0;
+  };
+
   enum class DeviceType : uint8_t { X4, X3 };
 
 private:
@@ -68,6 +89,9 @@ public:
   unsigned long getHeldTime() const;
   unsigned long getPowerButtonHeldTime() const;
   bool hasTouch() const;
+  constexpr bool supportsMultiTouch() const { return false; }
+  constexpr TouchSnapshot getTouchSnapshot() const { return {}; }
+  constexpr bool wasCompletedMultiTouchSwipe(CompletedMultiTouchSwipe&) const { return false; }
   bool hasHomeKey() const;
   bool wasHomeKeyPressed() const;
   bool wasHomeKeyTapped() const;
