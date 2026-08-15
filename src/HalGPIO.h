@@ -89,7 +89,9 @@ public:
   unsigned long getHeldTime() const;
   unsigned long getPowerButtonHeldTime() const;
   bool hasTouch() const;
-  constexpr bool supportsMultiTouch() const { return false; }
+  // SDL currently injects one pointer, but touch device profiles should still
+  // expose their hardware capability so firmware settings can be inspected.
+  bool supportsMultiTouch() const;
   constexpr TouchSnapshot getTouchSnapshot() const { return {}; }
   constexpr bool wasCompletedMultiTouchSwipe(CompletedMultiTouchSwipe&) const { return false; }
   bool hasHomeKey() const;

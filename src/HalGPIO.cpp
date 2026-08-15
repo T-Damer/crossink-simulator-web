@@ -626,6 +626,8 @@ unsigned long HalGPIO::getPowerButtonHeldTime() const {
 
 bool HalGPIO::hasTouch() const { return BoardConfig::hasTouch(); }
 
+bool HalGPIO::supportsMultiTouch() const { return BoardConfig::hasTouch(); }
+
 bool HalGPIO::hasHomeKey() const { return BoardConfig::hasHomeKey(); }
 
 bool HalGPIO::wasHomeKeyPressed() const { return homeKeyPressedThisFrame; }
