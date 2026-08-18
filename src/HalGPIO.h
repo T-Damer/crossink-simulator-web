@@ -58,6 +58,13 @@ public:
     unsigned long durationMs = 0;
   };
 
+  struct CompletedMultiTouchRotation {
+    float degrees = 0.0f;
+    float nxCenter = 0.0f;
+    float nyCenter = 0.0f;
+    unsigned long durationMs = 0;
+  };
+
   enum class DeviceType : uint8_t { X4, X3 };
 
 private:
@@ -94,6 +101,7 @@ public:
   bool supportsMultiTouch() const;
   constexpr TouchSnapshot getTouchSnapshot() const { return {}; }
   constexpr bool wasCompletedMultiTouchSwipe(CompletedMultiTouchSwipe&) const { return false; }
+  constexpr bool wasCompletedMultiTouchRotation(CompletedMultiTouchRotation&) const { return false; }
   bool hasHomeKey() const;
   bool wasHomeKeyPressed() const;
   bool wasHomeKeyTapped() const;
