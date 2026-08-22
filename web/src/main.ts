@@ -153,6 +153,21 @@ app.innerHTML = `
           <p class="hint" id="upload-status">Upload a PNG/JPG/BMP and it will be available at <code>/fs_/browser-upload/</code>.</p>
         </div>
 
+        <div class="panel-section">
+          <div class="section-heading"><h2><i class="ph ph-moon"></i> Auto-sleep</h2><span id="sleep-state">device default</span></div>
+          <select id="sleep-select" aria-label="Auto-sleep timeout">
+            <option value="31">Never — testing</option>
+            <option value="1">After 1 minute</option>
+            <option value="5">After 5 minutes</option>
+            <option value="10">After 10 minutes (device default)</option>
+            <option value="15">After 15 minutes</option>
+            <option value="30">After 30 minutes</option>
+          </select>
+          <p class="hint">Applies immediately and is remembered for this browser. "Never" keeps scripted test sessions alive.</p>
+          <button class="secondary-button" id="reset-device" type="button"><i class="ph ph-arrow-counter-clockwise"></i> Reset device</button>
+          <p class="hint">Deep sleep cannot re-exec inside WASM — if the device slept, reset it here (or reload).</p>
+        </div>
+
         <div class="panel-section tiny-git-panel">
           <div class="section-heading"><h2><i class="ph ph-git-branch"></i> tiny-git</h2><span id="git-branch">main</span></div>
           <input id="commit-message" type="text" value="Update browser card" aria-label="Commit message" />
@@ -405,10 +420,34 @@ const startDisplay = (module: BrowserModule): void => {
   const consumeDirty = module.cwrap("crosspoint_consume_dirty", "number", []);
   const touch = module.cwrap("crosspoint_touch", "void", ["number", "number", "number"]);
   const key = module.cwrap("crosspoint_key", "void", ["number", "number"]);
+  const setSleepTimeout = module.cwrap("crosspoint_set_sleep_timeout", "void", ["number"]);
+  const getSleepTimeout = module.cwrap("crosspoint_get_sleep_timeout", "number", []);
   const output = document.createElement("canvas");
   output.className = "firmware-canvas";
   output.tabIndex = 0;
   mount.replaceChildren(output);
+
+  // Auto-sleep control: re-apply the remembered override (the WASM filesystem
+  // is fresh on every page load), then keep the selector in sync with it.
+  const sleepSelect = document.querySelector<HTMLSelectElement>("#sleep-select");
+  const sleepState = document.querySelector<HTMLSpanElement>("#sleep-state");
+  const applySleepTimeout = (minutes: number): void => {
+    setSleepTimeout(minutes);
+    localStorage.setItem("xteink-sleep-timeout", String(minutes));
+    if (sleepState) sleepState.textContent = minutes >= 31 ? "never" : `${minutes} min`;
+  };
+  if (sleepSelect && sleepState) {
+    const remembered = Number(localStorage.getItem("xteink-sleep-timeout"));
+    if (Number.isFinite(remembered) && remembered >= 1) applySleepTimeout(Math.floor(remembered));
+    else sleepState.textContent = `${getSleepTimeout()} min`;
+    sleepSelect.addEventListener("change", () => {
+      const minutes = Number(sleepSelect.value);
+      if (Number.isFinite(minutes) && minutes >= 1) applySleepTimeout(Math.floor(minutes));
+    });
+    document.querySelector<HTMLButtonElement>("#reset-device")?.addEventListener("click", () => {
+      location.reload();
+    });
+  }
   const buffer = document.createElement("canvas");
   const bufferContext = buffer.getContext("2d");
   const outputContext = output.getContext("2d");
