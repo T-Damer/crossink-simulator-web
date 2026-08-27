@@ -1,0 +1,25 @@
+{
+  "name": "@crosspoint/xteink-browser-emulator",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/tiny-git"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome check ."
+  },
+  "dependencies": {
+    "@phosphor-icons/web": "^2.1.2",
+    "@crosspoint/tiny-git": "file:packages/tiny-git"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}

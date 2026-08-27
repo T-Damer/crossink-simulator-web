@@ -421,10 +421,12 @@ void HalDisplay::displayBufferAsync(RefreshMode mode) {
 }
 
 void HalDisplay::waitRefreshComplete() {}
+void HalDisplay::setBusyWaitSliceHook(bool (*)(int8_t, uint8_t)) {}
 
 bool HalDisplay::supportsAsyncRefresh() const { return false; }
 
 bool HalDisplay::supportsAsyncGrayscaleBase() const { return false; }
+bool HalDisplay::combinesGrayscaleBase() const { return false; }
 
 void HalDisplay::displayWindow(int, int, int, int) {
   refreshDisplay(RefreshMode::FAST_REFRESH, false);

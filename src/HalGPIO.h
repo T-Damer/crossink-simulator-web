@@ -88,6 +88,8 @@ public:
 
   // Button input methods
   void update();
+  void pollUsbState();
+  bool isDebouncePending() const;
   bool isPressed(uint8_t buttonIndex) const;
   bool wasPressed(uint8_t buttonIndex) const;
   bool wasAnyPressed() const;

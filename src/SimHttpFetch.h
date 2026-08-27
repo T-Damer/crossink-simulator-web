@@ -187,12 +187,25 @@ inline bool fetchFromMockRoot(const std::string &url, Response &out) {
 inline bool fetchWithCurl(const std::string &url, const char *method,
                           const std::map<std::string, std::string> &headers,
                           const std::string &basicAuth, const char *body,
-                          Response &out) {
+                          size_t bodyLen, Response &out) {
   char tmpTemplate[] = "/tmp/crosspoint-sim-http-XXXXXX";
   int fd = mkstemp(tmpTemplate);
   if (fd < 0)
     return false;
   close(fd);
+
+  std::string bodyFile;
+  if (body && bodyLen > 0) {
+    // Binary-safe: the shell path cannot carry NULs, so stage the body.
+    bodyFile = std::string(tmpTemplate) + ".body";
+    FILE *bf = fopen(bodyFile.c_str(), "wb");
+    if (!bf) {
+      unlink(tmpTemplate);
+      return false;
+    }
+    fwrite(body, 1, bodyLen, bf);
+    fclose(bf);
+  }
 
   std::string cmd = "curl -L -sS --connect-timeout 10 --max-time 60 -o ";
   cmd += shellQuote(tmpTemplate);
@@ -204,12 +217,15 @@ inline bool fetchWithCurl(const std::string &url, const char *method,
   }
   if (!basicAuth.empty())
     cmd += " -u " + shellQuote(basicAuth);
-  if (body)
-    cmd += " --data-binary " + shellQuote(body);
+  if (!bodyFile.empty()) {
+    cmd += " --data-binary @" + shellQuote(bodyFile);
+    cmd += " -H 'Content-Type: application/octet-stream'";
+  }
   cmd += " " + shellQuote(url);
 
   FILE *pipe = popen(cmd.c_str(), "r");
   if (!pipe) {
+    if (!bodyFile.empty()) unlink(bodyFile.c_str());
     unlink(tmpTemplate);
     return false;
   }
@@ -226,6 +242,7 @@ inline bool fetchWithCurl(const std::string &url, const char *method,
 
   bool readOk = readFile(tmpTemplate, out.body);
   unlink(tmpTemplate);
+  if (!bodyFile.empty()) unlink(bodyFile.c_str());
   if (!readOk)
     out.body.clear();
 
@@ -233,16 +250,29 @@ inline bool fetchWithCurl(const std::string &url, const char *method,
   return rc == 0 || out.statusCode > 0 || !out.body.empty();
 }
 
+#if defined(__EMSCRIPTEN__)
+// Browser build: implemented in web/wasm/src/http_wasm_fetch.cpp over JS
+// fetch() (EM_ASYNC_JS). Servers must send CORS headers for cross-origin.
+bool wasmFetch(const std::string &url, const char *method,
+               const std::map<std::string, std::string> &headers,
+               const std::string &basicAuth, const char *body,
+               size_t bodyLen, Response &out);
+#endif
+
 inline bool fetch(const std::string &url, const char *method,
                   const std::map<std::string, std::string> &headers,
                   const std::string &basicAuth, const char *body,
-                  Response &out) {
+                  size_t bodyLen, Response &out) {
   out = Response{};
+#if defined(__EMSCRIPTEN__)
+  return wasmFetch(url, method, headers, basicAuth, body, bodyLen, out);
+#else
   if (fetchFromMockRoot(url, out))
     return true;
   if (fetchFromFileUrl(url, out))
     return true;
-  return fetchWithCurl(url, method, headers, basicAuth, body, out);
+  return fetchWithCurl(url, method, headers, basicAuth, body, bodyLen, out);
+#endif
 }
 
 } // namespace sim_http_fetch

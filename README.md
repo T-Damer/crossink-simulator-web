@@ -133,6 +133,24 @@ pio run -e simulator -t run_simulator_no_build
 The project hook exposes this as **Run Simulator (No Build)** alongside the
 existing **Run Simulator** task in PlatformIO's Custom folder.
 
+## Browser emulator
+
+The browser package stays in this simulator repository, not in the firmware
+repository. It runs the same firmware sources through Emscripten/WASM and
+supports X4 Pro, X4, and X3 profiles:
+
+```bash
+cd web
+npm install
+python3 wasm/build.py --firmware-root /path/to/microMarkD --environment simulator_x4_pro
+npm run dev
+```
+
+Open the printed local URL. Vite supplies the COOP/COEP headers required by
+the threaded WASM build; edit HTML/CSS/TypeScript for HMR, and rebuild WASM
+after changing C++ sources. See [web/README.md](web/README.md) for the
+profile and upload details.
+
 ## Controls
 
 | Key    | Action                             |

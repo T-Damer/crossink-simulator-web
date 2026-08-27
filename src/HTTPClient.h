@@ -74,6 +74,8 @@ public:
   int GET() { return perform("GET", nullptr); }
   int POST() { return perform("POST", ""); }
   int POST(const char *body) { return perform("POST", body ? body : ""); }
+  // Binary-safe: bodies may contain NULs (git pkt-lines).
+  int POST(const std::string &body) { return perform("POST", body.data(), body.size()); }
   int PUT(const char *body) { return perform("PUT", body ? body : ""); }
   int PUT(const String &body) { return perform("PUT", body.c_str()); }
 
@@ -170,12 +172,13 @@ private:
   std::unique_ptr<ResponseBodyStream> responseStream_;
   int statusCode_ = 0;
 
-  int perform(const char *method, const char *body) {
+  int perform(const char *method, const char *body, size_t bodyLen = 0) {
     if (url_.empty())
       return 0;
 
     sim_http_fetch::Response response;
-    if (!sim_http_fetch::fetch(url_, method, headers_, basicAuth_, body, response)) {
+    if (!sim_http_fetch::fetch(url_, method, headers_, basicAuth_, body,
+                               bodyLen, response)) {
       responseBody_ = "";
       responseStream_.reset();
       statusCode_ = 0;

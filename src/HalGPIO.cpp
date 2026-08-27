@@ -565,6 +565,9 @@ void HalGPIO::update() {
   updateHomeKeyHold();
 }
 
+void HalGPIO::pollUsbState() {}
+bool HalGPIO::isDebouncePending() const { return false; }
+
 bool HalGPIO::isPressed(uint8_t buttonIndex) const {
   if (buttonIndex >= NUM_BUTTONS)
     return false;

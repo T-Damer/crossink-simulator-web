@@ -20,6 +20,7 @@ type DeviceProfile = {
 };
 
 type BrowserModule = {
+  HEAPU8: Uint8Array;
   HEAPU32: Uint32Array;
   cwrap(name: string, returnType: string, argTypes: string[]): (...args: number[]) => number;
   FS: {
@@ -412,6 +413,59 @@ const paintRuntime = async (): Promise<void> => {
   }
 };
 
+// Blocking-fetch bridge: a dedicated worker performs fetch() calls while the
+// firmware thread blocks on Atomics.wait over a shared control block carved
+// from the wasm heap (shared with workers in -pthread builds). Layout must
+// match web/wasm/src/http_wasm_fetch.cpp.
+const HTTP_WORKER_SRC = `
+const CTRL_SEQ = 0, CTRL_STATUS = 1, CTRL_ERRLEN = 2, CTRL_URLLEN = 3,
+      CTRL_METHODLEN = 4, CTRL_HDRLEN = 5, CTRL_AUTHLEN = 6, CTRL_BODYLEN = 7,
+      CTRL_RESPLEN = 8;
+const OFF_URL = 64, CAP_URL = 1024, OFF_METHOD = 1088, OFF_HDR = 1104,
+      CAP_HDR = 2048, OFF_BODY = 3408, CAP_BODY = 1048576, OFF_RESP = 1051392,
+      CAP_RESP = 4194304, OFF_ERR = 5253952, CAP_ERR = 256;
+self.onmessage = (e) => {
+  const bytes = new Uint8Array(e.data.sab, e.data.ptr);
+  const ctrl = new Int32Array(e.data.sab, e.data.ptr, 16);
+  const dec = new TextDecoder();
+  let seen = 0;
+  for (;;) {
+    Atomics.wait(ctrl, CTRL_SEQ, seen);
+    seen = Atomics.load(ctrl, CTRL_SEQ);
+    const url = dec.decode(bytes.subarray(OFF_URL, OFF_URL + ctrl[CTRL_URLLEN]));
+    const method = dec.decode(bytes.subarray(OFF_METHOD, OFF_METHOD + ctrl[CTRL_METHODLEN]));
+    let headers = {};
+    try { headers = JSON.parse(dec.decode(bytes.subarray(OFF_HDR, OFF_HDR + ctrl[CTRL_HDRLEN]))) || {}; } catch {}
+    const bodyLen = ctrl[CTRL_BODYLEN];
+    const init = { method, headers };
+    if (bodyLen > 0) init.body = bytes.slice(OFF_BODY, OFF_BODY + bodyLen);
+    fetch(url, init).then(async (resp) => {
+      const buf = new Uint8Array(await resp.arrayBuffer());
+      const n = Math.min(buf.length, CAP_RESP);
+      bytes.set(buf.subarray(0, n), OFF_RESP);
+      Atomics.store(ctrl, CTRL_RESPLEN, n);
+      Atomics.store(ctrl, CTRL_STATUS, resp.status);
+      Atomics.notify(ctrl, CTRL_STATUS);
+    }).catch((err) => {
+      const msg = new TextEncoder().encode(String(err)).subarray(0, CAP_ERR);
+      bytes.set(msg, OFF_ERR);
+      Atomics.store(ctrl, CTRL_ERRLEN, msg.length);
+      Atomics.store(ctrl, CTRL_RESPLEN, 0);
+      Atomics.store(ctrl, CTRL_STATUS, -1);
+      Atomics.notify(ctrl, CTRL_STATUS);
+    });
+  }
+};
+`;
+
+const startHttpWorker = (module: BrowserModule): void => {
+  const alloc = module.cwrap("crosspoint_http_sab_alloc", "number", ["number"]);
+  const ptr = alloc(6 * 1024 * 1024);
+  if (!ptr || !module.HEAPU8.buffer.constructor.name.includes("Shared")) return;
+  const worker = new Worker(URL.createObjectURL(new Blob([HTTP_WORKER_SRC], { type: "text/javascript" })));
+  worker.postMessage({ sab: module.HEAPU8.buffer, ptr });
+};
+
 const startDisplay = (module: BrowserModule): void => {
   const framePtr = module.cwrap("crosspoint_frame_ptr", "number", []);
   const frameWidth = module.cwrap("crosspoint_frame_width", "number", []);
@@ -420,12 +474,15 @@ const startDisplay = (module: BrowserModule): void => {
   const consumeDirty = module.cwrap("crosspoint_consume_dirty", "number", []);
   const touch = module.cwrap("crosspoint_touch", "void", ["number", "number", "number"]);
   const key = module.cwrap("crosspoint_key", "void", ["number", "number"]);
+  startHttpWorker(module);
   const setSleepTimeout = module.cwrap("crosspoint_set_sleep_timeout", "void", ["number"]);
   const getSleepTimeout = module.cwrap("crosspoint_get_sleep_timeout", "number", []);
   const output = document.createElement("canvas");
   output.className = "firmware-canvas";
   output.tabIndex = 0;
   mount.replaceChildren(output);
+  // Scripted-testing hook: raw module access for deterministic input injection.
+  (window as unknown as Record<string, unknown>).__firmware = module;
 
   // Auto-sleep control: re-apply the remembered override (the WASM filesystem
   // is fresh on every page load), then keep the selector in sync with it.

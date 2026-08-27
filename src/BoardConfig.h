@@ -73,15 +73,23 @@ enum class Board {
   Sticky,
 };
 
+struct ViewableInsets {
+  uint8_t top = 9;
+  uint8_t right = 3;
+  uint8_t bottom = 3;
+  uint8_t left = 3;
+};
+
 struct BoardProfile {
   Board board;
   const char *name;
+  ViewableInsets viewableInsets{};
 };
 
 inline constexpr BoardProfile XTEINK_X4 = {Board::XteinkX4, "xteink_x4"};
 inline constexpr BoardProfile XTEINK_X3 = {Board::XteinkX3, "xteink_x3"};
 inline constexpr BoardProfile XTEINK_X4_PRO = {Board::XteinkX4Pro,
-                                               "xteink_x4_pro"};
+                                               "xteink_x4_pro", {9, 7, 3, 7}};
 inline constexpr BoardProfile STICKY = {Board::Sticky, "sticky"};
 
 #if defined(SIMULATOR_DEVICE_STICKY)

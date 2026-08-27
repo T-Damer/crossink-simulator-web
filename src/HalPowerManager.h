@@ -23,6 +23,8 @@ class HalPowerManager {
 public:
   static constexpr int LOW_POWER_FREQ = 10;                   // MHz
   static constexpr unsigned long IDLE_POWER_SAVING_MS = 3000; // ms
+  static constexpr unsigned long IDLE_DOWNCLOCK_MS = 500;     // ms
+  static constexpr unsigned long IDLE_LIGHT_SLEEP_MS = 1000;  // ms
 
   void begin();
 
@@ -32,6 +34,12 @@ public:
   // Setup wake up GPIO and enter deep sleep
   // Should be called inside main loop() to handle the currentLockMode
   void startDeepSleep(HalGPIO &gpio) const;
+
+  bool lightSleep(const HalGPIO &gpio) const;
+  bool onEinkBusyWaitSlice(int8_t busyPin, uint8_t busyLevel);
+  void noteMainLoopIteration();
+  void noteRenderWaitBegin();
+  void noteRenderWaitEnd();
 
   // Get battery percentage (range 0-100)
   uint16_t getBatteryPercentage() const;

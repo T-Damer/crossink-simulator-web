@@ -23,6 +23,7 @@ EXTRA_SOURCES = [
     WASM_ROOT / "src" / "sdl_browser.cpp",
     WASM_ROOT / "src" / "wasm_main.cpp",
     WASM_ROOT / "src" / "http_canned.cpp",
+    WASM_ROOT / "src" / "http_wasm_fetch.cpp",
 ]
 DEVICE_NAMES = {
     "simulator_x4_pro": "x4pro",
@@ -180,7 +181,7 @@ def build(firmware_root: pathlib.Path, environment: str) -> None:
         "-sENVIRONMENT=web,worker",
         "-sFORCE_FILESYSTEM=1",
         "-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU32,FS,ENV",
-        "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_crosspoint_frame_ptr,_crosspoint_frame_width,_crosspoint_frame_height,_crosspoint_frame_rotation,_crosspoint_consume_dirty,_crosspoint_touch,_crosspoint_key",
+        "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_crosspoint_frame_ptr,_crosspoint_frame_width,_crosspoint_frame_height,_crosspoint_frame_rotation,_crosspoint_consume_dirty,_crosspoint_touch,_crosspoint_key,_crosspoint_set_sleep_timeout,_crosspoint_get_sleep_timeout,_crosspoint_http_sab_alloc",
         "-sASSERTIONS=1",
         "-Oz",
     ]

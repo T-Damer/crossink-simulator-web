@@ -40,6 +40,8 @@ public:
 
   int GET() { return http_.GET(); }
   int POST(const String &payload) { return http_.POST(payload.c_str()); }
+  // Binary-safe: bodies may contain NULs (git pkt-lines).
+  int POST(const std::string &payload) { return http_.POST(payload); }
   int sendRequest(const char *method, const String &payload) {
     if (method && std::string(method) == "PUT") {
       return http_.PUT(payload);

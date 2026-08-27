@@ -1,4 +1,7 @@
 #pragma once
+
+#include <BoardConfig.h>
+
 class InputManager {
 public:
   InputManager() {}
