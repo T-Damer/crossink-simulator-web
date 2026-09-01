@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["src", "packages/tiny-git/src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"]
 }

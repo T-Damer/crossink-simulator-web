@@ -18,6 +18,7 @@ uint32_t present[MAX_PIXELS]{};
 uint32_t staging[MAX_PIXELS]{};
 std::atomic<int> dirty{1};
 std::atomic<int> rotation{0};
+std::atomic<bool> refreshSimulation{false};
 int stagingWidth = HalDisplay::DISPLAY_WIDTH;
 int stagingHeight = HalDisplay::DISPLAY_HEIGHT;
 int stagingRotation = 0;
@@ -54,6 +55,9 @@ int presentWidth() { return HalDisplay::DISPLAY_WIDTH; }
 int presentHeight() { return HalDisplay::DISPLAY_HEIGHT; }
 int presentRotation() { return rotation.load(std::memory_order_acquire); }
 int consumeDirty() { return dirty.exchange(0, std::memory_order_acquire); }
+void setRefreshSimulation(const bool enabled) {
+  refreshSimulation.store(enabled, std::memory_order_release);
+}
 }  // namespace simbrowser
 
 extern "C" {
@@ -90,6 +94,11 @@ int SDL_RenderCopyEx(SDL_Renderer*, SDL_Texture*, const SDL_Rect*, const SDL_Rec
   return 0;
 }
 void SDL_RenderPresent(SDL_Renderer*) {
+  // Keep the browser responsive while the firmware thread waits through a
+  // representative e-ink update time.
+  if (refreshSimulation.load(std::memory_order_acquire)) {
+    emscripten_thread_sleep(700);
+  }
   std::lock_guard lock(frameMutex);
   std::memcpy(present, staging, static_cast<size_t>(stagingWidth) * stagingHeight * sizeof(uint32_t));
   rotation.store(stagingRotation, std::memory_order_release);

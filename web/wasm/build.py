@@ -100,11 +100,13 @@ def compile_one(job: tuple[pathlib.Path, list[str], pathlib.Path, pathlib.Path, 
     wanted = " ".join(command)
     if output.exists() and stamp.exists() and dependencies.exists() and stamp.read_text() == wanted:
         dependency_text = dependencies.read_text().replace("\\\n", " ")
-        dependency_paths = shlex.split(dependency_text.split(":", 1)[-1])
+        dependency_paths = [
+            pathlib.Path(path) if pathlib.Path(path).is_absolute() else command_root / path
+            for path in shlex.split(dependency_text.split(":", 1)[-1])
+        ]
         if all(
-            not (dependency_path := pathlib.Path(path)).exists()
-            or dependency_path.stat().st_mtime <= output.stat().st_mtime
-            for path in dependency_paths
+            not dependency_path.exists() or dependency_path.stat().st_mtime <= output.stat().st_mtime
+            for dependency_path in dependency_paths
         ):
             return source, 0, ""
     result = subprocess.run(command, cwd=command_root, capture_output=True, text=True)
@@ -132,16 +134,21 @@ def load_sources(firmware_root: pathlib.Path) -> list[tuple[pathlib.Path, list[s
     extra_sources = [
         *EXTRA_SOURCES,
         firmware_root / "src" / "activities" / "micromarkd" / "MarkdownSyncActivity.cpp",
+        firmware_root / "src" / "activities" / "micromarkd" / "MarkdownGraphActivity.cpp",
+        firmware_root / "src" / "activities" / "micromarkd" / "MarkdownReaderMenuActivity.cpp",
     ]
-    sources.extend((source, template) for source in extra_sources if source.exists())
+    known_sources = {source for source, _ in sources}
+    sources.extend((source, template) for source in extra_sources if source.exists() and source not in known_sources)
     return sources
 
 
-def build(firmware_root: pathlib.Path, environment: str) -> None:
+def build(firmware_root: pathlib.Path, environment: str, vault_root: pathlib.Path | None = None) -> None:
     if environment not in DEVICE_NAMES:
         raise SystemExit(f"unsupported environment: {environment}")
     if not shutil.which("em++"):
         raise SystemExit("em++ is not on PATH; install Emscripten and activate it")
+    if vault_root is not None and not vault_root.is_dir():
+        raise SystemExit(f"vault root is not a directory: {vault_root}")
 
     sources = load_sources(firmware_root)
     device = DEVICE_NAMES[environment]
@@ -181,11 +188,20 @@ def build(firmware_root: pathlib.Path, environment: str) -> None:
         "-sENVIRONMENT=web,worker",
         "-sFORCE_FILESYSTEM=1",
         "-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU32,FS,ENV",
-        "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_crosspoint_frame_ptr,_crosspoint_frame_width,_crosspoint_frame_height,_crosspoint_frame_rotation,_crosspoint_consume_dirty,_crosspoint_touch,_crosspoint_key,_crosspoint_set_sleep_timeout,_crosspoint_get_sleep_timeout,_crosspoint_http_sab_alloc",
+        "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_crosspoint_frame_ptr,_crosspoint_frame_width,_crosspoint_frame_height,_crosspoint_frame_rotation,_crosspoint_consume_dirty,_crosspoint_touch,_crosspoint_key,_crosspoint_set_refresh_simulation,_crosspoint_set_sleep_timeout,_crosspoint_get_sleep_timeout,_crosspoint_http_sab_alloc",
         "-sASSERTIONS=1",
         "-Oz",
     ]
-    if card.exists():
+    if vault_root is not None:
+        link.append(f"--preload-file={vault_root}@/fs_/vault")
+        # Keep the browser image focused on Markdown content. Git metadata,
+        # editor state, attachments, and the codedb cache are not used by the
+        # firmware reader and can make a vault preload hundreds of megabytes.
+        for excluded_name in (".git", ".obsidian", "Files", "codedb.snapshot"):
+            excluded_path = vault_root / excluded_name
+            if excluded_path.exists():
+                link.append(f"--exclude-file={excluded_path}")
+    elif card.exists():
         link.append(f"--preload-file={card}@/fs_")
     result = subprocess.run(link, cwd=firmware_root, capture_output=True, text=True)
     if result.returncode:
@@ -198,9 +214,10 @@ def build(firmware_root: pathlib.Path, environment: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--firmware-root", type=pathlib.Path, required=True)
+    parser.add_argument("--vault-root", type=pathlib.Path)
     parser.add_argument("--environment", default="simulator_x4_pro", choices=sorted(DEVICE_NAMES))
     args = parser.parse_args()
-    build(args.firmware_root.resolve(), args.environment)
+    build(args.firmware_root.resolve(), args.environment, args.vault_root.resolve() if args.vault_root else None)
 
 
 if __name__ == "__main__":

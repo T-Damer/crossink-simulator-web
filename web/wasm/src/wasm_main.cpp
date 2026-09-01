@@ -23,6 +23,7 @@ int presentWidth();
 int presentHeight();
 int presentRotation();
 int consumeDirty();
+void setRefreshSimulation(bool enabled);
 }  // namespace simbrowser
 
 namespace {
@@ -49,6 +50,9 @@ EMSCRIPTEN_KEEPALIVE int crosspoint_frame_width() { return simbrowser::presentWi
 EMSCRIPTEN_KEEPALIVE int crosspoint_frame_height() { return simbrowser::presentHeight(); }
 EMSCRIPTEN_KEEPALIVE int crosspoint_frame_rotation() { return simbrowser::presentRotation(); }
 EMSCRIPTEN_KEEPALIVE int crosspoint_consume_dirty() { return simbrowser::consumeDirty(); }
+EMSCRIPTEN_KEEPALIVE void crosspoint_set_refresh_simulation(const int enabled) {
+  simbrowser::setRefreshSimulation(enabled != 0);
+}
 
 EMSCRIPTEN_KEEPALIVE void crosspoint_touch(const int phase, const int x, const int y) {
   SDL_Event event{};

@@ -38,15 +38,6 @@ python3 wasm/build.py --firmware-root /path/to/microMarkD --environment simulato
 python3 wasm/build.py --firmware-root /path/to/microMarkD --environment simulator_x3
 ```
 
-`packages/tiny-git` is intentionally a local workspace package. It owns the
-local note commit model (branches, checkout, and snapshots) and can move to
-its own repository without changing the emulator UI import.
-
-The MicroMarkD workbench is a small Obsidian-like browser surface: it browses
-the local vault, searches note contents, follows `[[wiki links]]`, shows tags
-and backlinks, edits notes, and commits changes through tiny-git. It is a
-preview companion for the emulator, not a second firmware implementation.
-
 Generated WASM files under `public/emulator/` are ignored. Keep the source and
 build script here; build the profile locally or in CI from a firmware checkout.
 
