@@ -6,6 +6,19 @@
     <meta name="theme-color" content="#efeee9" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Xteink browser emulator</title>
+    <script>
+      if ("serviceWorker" in navigator && !window.crossOriginIsolated) {
+        let reloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (reloading) return;
+          reloading = true;
+          window.location.reload();
+        });
+        navigator.serviceWorker.register("./coi-serviceworker.js").catch((error) => {
+          console.error("Unable to enable cross-origin isolation", error);
+        });
+      }
+    </script>
   </head>
   <body>
     <main id="app"></main>
