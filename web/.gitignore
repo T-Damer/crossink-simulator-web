@@ -4,5 +4,3 @@ output/
 .playwright-cli/
 .playwright-mcp/
 __pycache__/
-public/emulator/*
-!public/emulator/.gitkeep

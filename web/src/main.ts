@@ -31,6 +31,8 @@ declare global {
   }
 }
 
+const publicAsset = (path: string): string => `${import.meta.env.BASE_URL}${path}`;
+
 const DEVICES: Record<string, DeviceProfile> = {
   x4pro: {
     id: "x4pro",
@@ -40,7 +42,7 @@ const DEVICES: Record<string, DeviceProfile> = {
     bodyWidthMm: 111,
     bodyHeightMm: 69,
     skin: {
-      src: "/device-skins/x4pro.png",
+      src: publicAsset("device-skins/x4pro.png"),
       screen: { top: 5.1, right: 10.4, bottom: 12.3, left: 10.3 },
     },
   },
@@ -52,7 +54,7 @@ const DEVICES: Record<string, DeviceProfile> = {
     bodyWidthMm: 114,
     bodyHeightMm: 69,
     skin: {
-      src: "/device-skins/x4.png",
+      src: publicAsset("device-skins/x4.png"),
       screen: { top: 5.2, right: 11.3, bottom: 15, left: 10.4 },
     },
   },
@@ -64,7 +66,7 @@ const DEVICES: Record<string, DeviceProfile> = {
     bodyWidthMm: 97.6,
     bodyHeightMm: 63.7,
     skin: {
-      src: "/device-skins/x3.png",
+      src: publicAsset("device-skins/x3.png"),
       screen: { top: 5.8, right: 10.1, bottom: 14.8, left: 10.1 },
     },
   },
@@ -247,10 +249,10 @@ const loadScript = (src: string): Promise<void> =>
 const paintRuntime = async (): Promise<void> => {
   status.textContent = `Loading ${selectedDevice.name}…`;
   try {
-    await loadScript(`/emulator/${selectedDevice.id}/crosspoint.js`);
+    await loadScript(publicAsset(`emulator/${selectedDevice.id}/crosspoint.js`));
     if (!window.createCrosspoint) throw new Error("WASM factory is missing");
     const module = await window.createCrosspoint({
-      locateFile: (file) => `/emulator/${selectedDevice.id}/${file}`,
+      locateFile: (file) => publicAsset(`emulator/${selectedDevice.id}/${file}`),
       print: (line) => {
         if (firmwareLogsEnabled) console.info(`[firmware] ${line}`);
       },

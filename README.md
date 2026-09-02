@@ -151,6 +151,10 @@ the threaded WASM build; edit HTML/CSS/TypeScript for HMR, and rebuild WASM
 after changing C++ sources. See [web/README.md](web/README.md) for the
 profile and upload details.
 
+The current browser build is published from `main` through GitHub Pages at
+https://t-damer.github.io/crossink-simulator-web/. The Pages workflow builds
+`web/` with the `github-pages` Vite mode and uses the committed WASM profiles.
+
 ## Controls
 
 | Key    | Action                             |

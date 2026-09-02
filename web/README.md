@@ -38,8 +38,12 @@ python3 wasm/build.py --firmware-root /path/to/microMarkD --environment simulato
 python3 wasm/build.py --firmware-root /path/to/microMarkD --environment simulator_x3
 ```
 
-Generated WASM files under `public/emulator/` are ignored. Keep the source and
-build script here; build the profile locally or in CI from a firmware checkout.
+Generated WASM profiles under `public/emulator/` are committed because the
+GitHub Pages workflow publishes this repository without a firmware checkout.
+Rebuild the profiles after firmware changes and commit the updated files.
+
+GitHub Pages uses the `github-pages` Vite mode and publishes automatically from
+`main` via `.github/workflows/pages.yml`.
 
 ## Checks
 
