@@ -136,6 +136,8 @@ def load_sources(firmware_root: pathlib.Path) -> list[tuple[pathlib.Path, list[s
         firmware_root / "src" / "activities" / "micromarkd" / "MarkdownSyncActivity.cpp",
         firmware_root / "src" / "activities" / "micromarkd" / "MarkdownGraphActivity.cpp",
         firmware_root / "src" / "activities" / "micromarkd" / "MarkdownReaderMenuActivity.cpp",
+        firmware_root / "src" / "activities" / "micromarkd" / "WeatherWidget.cpp",
+        firmware_root / "src" / "activities" / "micromarkd" / "HomeWidgetView.cpp",
     ]
     known_sources = {source for source, _ in sources}
     sources.extend((source, template) for source in extra_sources if source.exists() and source not in known_sources)
