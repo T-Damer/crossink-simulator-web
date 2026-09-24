@@ -276,21 +276,26 @@ const HTTP_WORKER_SRC = `
 const CTRL_SEQ = 0, CTRL_STATUS = 1, CTRL_ERRLEN = 2, CTRL_URLLEN = 3,
       CTRL_METHODLEN = 4, CTRL_HDRLEN = 5, CTRL_AUTHLEN = 6, CTRL_BODYLEN = 7,
       CTRL_RESPLEN = 8;
-const OFF_URL = 64, CAP_URL = 1024, OFF_METHOD = 1088, OFF_HDR = 1104,
-      CAP_HDR = 2048, OFF_BODY = 3408, CAP_BODY = 1048576, OFF_RESP = 1051392,
-      CAP_RESP = 4194304, OFF_ERR = 5253952, CAP_ERR = 256;
+const OFF_URL = 64, CAP_URL = 1024, OFF_METHOD = OFF_URL + CAP_URL, CAP_METHOD = 16,
+      OFF_HDR = OFF_METHOD + CAP_METHOD, CAP_HDR = 2048,
+      OFF_AUTH = OFF_HDR + CAP_HDR, CAP_AUTH = 256,
+      OFF_BODY = OFF_AUTH + CAP_AUTH, CAP_BODY = 1048576,
+      OFF_RESP = OFF_BODY + CAP_BODY, CAP_RESP = 4194304,
+      OFF_ERR = OFF_RESP + CAP_RESP, CAP_ERR = 256;
 self.onmessage = (e) => {
   const bytes = new Uint8Array(e.data.sab, e.data.ptr);
   const ctrl = new Int32Array(e.data.sab, e.data.ptr, 16);
   const dec = new TextDecoder();
   let seen = 0;
-  for (;;) {
-    Atomics.wait(ctrl, CTRL_SEQ, seen);
-    seen = Atomics.load(ctrl, CTRL_SEQ);
-    const url = dec.decode(bytes.subarray(OFF_URL, OFF_URL + ctrl[CTRL_URLLEN]));
-    const method = dec.decode(bytes.subarray(OFF_METHOD, OFF_METHOD + ctrl[CTRL_METHODLEN]));
+  // A blocking wait here starves the fetch() promise callbacks on this worker.
+  setInterval(() => {
+    const next = Atomics.load(ctrl, CTRL_SEQ);
+    if (next === seen) return;
+    seen = next;
+    const url = dec.decode(bytes.slice(OFF_URL, OFF_URL + ctrl[CTRL_URLLEN]));
+    const method = dec.decode(bytes.slice(OFF_METHOD, OFF_METHOD + ctrl[CTRL_METHODLEN]));
     let headers = {};
-    try { headers = JSON.parse(dec.decode(bytes.subarray(OFF_HDR, OFF_HDR + ctrl[CTRL_HDRLEN]))) || {}; } catch {}
+    try { headers = JSON.parse(dec.decode(bytes.slice(OFF_HDR, OFF_HDR + ctrl[CTRL_HDRLEN]))) || {}; } catch {}
     const bodyLen = ctrl[CTRL_BODYLEN];
     const init = { method, headers };
     if (bodyLen > 0) init.body = bytes.slice(OFF_BODY, OFF_BODY + bodyLen);
@@ -309,7 +314,7 @@ self.onmessage = (e) => {
       Atomics.store(ctrl, CTRL_STATUS, -1);
       Atomics.notify(ctrl, CTRL_STATUS);
     });
-  }
+  }, 10);
 };
 `;
 
@@ -318,6 +323,7 @@ const startHttpWorker = (module: BrowserModule): void => {
   const ptr = alloc(6 * 1024 * 1024);
   if (!ptr || !module.HEAPU8.buffer.constructor.name.includes("Shared")) return;
   const worker = new Worker(URL.createObjectURL(new Blob([HTTP_WORKER_SRC], { type: "text/javascript" })));
+  worker.onerror = (event) => console.error("HTTP worker error", event.message);
   worker.postMessage({ sab: module.HEAPU8.buffer, ptr });
 };
 

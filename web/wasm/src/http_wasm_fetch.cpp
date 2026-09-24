@@ -11,8 +11,8 @@
 //   ctrl[2]  errLen
 //   ctrl[3..8]          url/method/headers/auth/body/response lengths
 //   data:   url@64 (1 KiB) method@1088 (16 B) headers@1104 (2 KiB)
-//           auth@3152 (256 B) body@3408 (1 MiB) response@1051392 (4 MiB)
-//           err@5253952 (256 B)
+//           auth@3152 (256 B) body@3408 (1 MiB) response@1051984 (4 MiB)
+//           err@5246288 (256 B)
 #include <emscripten.h>
 #include <emscripten/atomic.h>
 
@@ -142,7 +142,7 @@ bool wasmFetch(const std::string &url, const char *method,
   ctrl[CTRL_ERRLEN] = 0;
   ctrl[CTRL_STATUS] = 0;
 
-  // seq only ever increases; the worker waits for it to change.
+  // seq only ever increases; the worker polls it without blocking fetch callbacks.
   static uint32_t seq = 0;
   emscripten_atomic_store_u32((void *)(ctrl + CTRL_SEQ), ++seq);
   emscripten_atomic_notify((void *)(ctrl + CTRL_SEQ), 1);

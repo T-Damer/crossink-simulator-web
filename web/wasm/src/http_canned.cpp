@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "SimHttpFetch.h"
 #include "network/HttpDownloader.h"
 
 namespace {
@@ -15,6 +16,15 @@ bool readCard(const std::string& url, const HttpDownloader::DataCallback& callba
 
 bool HttpDownloader::fetchUrl(const std::string& url, std::string& output, const std::string&, const std::string&) {
   output.clear();
+  if (url == "https://ipwho.is/" || url.rfind("https://api.open-meteo.com/v1/forecast?", 0) == 0 ||
+      url.rfind("https://geocoding-api.open-meteo.com/v1/search?", 0) == 0) {
+    sim_http_fetch::Response response;
+    if (!sim_http_fetch::fetch(url, "GET", {}, "", nullptr, 0, response) || response.statusCode != 200 ||
+        response.body.size() > 8192)
+      return false;
+    output = response.body;
+    return true;
+  }
   return readCard(url, [&output](const uint8_t* data, const size_t size) {
     output.append(reinterpret_cast<const char*>(data), size);
     return true;
